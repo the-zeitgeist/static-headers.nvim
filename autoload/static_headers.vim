@@ -9,7 +9,7 @@ let g:static_headers_autoloaded = 1
 let s:save_cpo = &cpoptions
 set cpoptions&vim
 
-let s:static_headers_lines = get(g:, 'static_headers_lines', 4)
+let s:static_headers_lines = get(g:, 'static_headers_lines', 1)
 if exists('*nvim_create_namespace')
   let s:static_headers_namespace = nvim_create_namespace('static_headers')
 endif
@@ -30,27 +30,45 @@ function! static_headers#BufferExit()
   call static_headers#StopBufferTracking()
 endfunction
 
-function! static_headers#StartBufferTracking() abort
-  " autocmd! CursorMoved * :call
-  echo 'tracking'
-endfunction
-
-function! static_headers#StopBufferTracking() abort
+function! static_headers#StartBufferTracking()
   " autocmd! CursorMoved * :call
   let s:static_headers_allowed_files = ['ts', 'html', 'js', 'go', 'css', 'sass', 'scss']
   let s:extension = split(bufname(), '\.')[-1]
   let s:allowed_extension = 0
   for e in s:static_headers_allowed_files
-    if s:allowed_extension == e
-      s:allowed_extension = 1
+    if s:extension == e
+      let s:allowed_extension = 1
     endif
   endfor
 
-  if s:allowed_extension == 0
+  augroup StaticHeadersTracker
+    autocmd! CursorMoved * :call static_headers#DetectHeader()
+  augroup END
+
+  echo 'tracking'
+endfunction
+
+function! static_headers#StopBufferTracking() abort
+  echo 'tracking'
+  autocmd! StaticHeadersTracker
+endfunction
+
+function! static_headers#DetectHeader() abort
+  call timer_stop(s:static_headers_timer)
+  " kill sticky header
+
+  let s:static_headers_timer = timer_start(5000, { tid -> static_headers#ShowStaticHeaders() })
+endfunction
+
+function! static_headers#ShowStaticHeaders()
+  let s:offset = winline() - getpos(".")[1]
+
+  if s:offset == 0
     return
   endif
 
-  echo 'tracking'
+  echo s:offset
+  split %
 endfunction
 
 function! static_headers#Init() abort
@@ -62,8 +80,8 @@ function! static_headers#Init() abort
 
   augroup vim_static_headers
     autocmd!
-    autocmd! BufEnter * :call static_headers#BufferEnter()
-    autocmd! BufEnter * :call static_headers#BufferExit()
+    autocmd BufEnter * :call static_headers#BufferEnter()
+    autocmd BufEnter * :call static_headers#BufferExit()
   augroup END
 endfunction
 
