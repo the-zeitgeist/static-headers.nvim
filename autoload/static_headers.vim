@@ -11,22 +11,8 @@ set cpoptions&vim
 
 let s:static_headers_lines = get(g:, 'static_headers_lines', 4)
 if exists('*nvim_create_namespace')
-  let s:blamer_namespace = nvim_create_namespace('static_headers')
+  let s:static_headers_namespace = nvim_create_namespace('static_headers')
 endif
-
-function! vim_static_headers#Init() abort
-  if g:static_headers_initialized == 1
-    return
-  endif
-
-  let g:static_headers_initialized = 1
-
-  augroup vim_static_headers
-    autocmd!
-    autocmd! BufEnter * :call static_headers#BufferEnter()
-    autocmd! BufEnter * :call static_headers#BufferExit()
-  augroup END
-endfunction
 
 function! static_headers#BufferEnter()
   if g:static_headers_enabled == 0
@@ -58,13 +44,27 @@ function! static_headers#StopBufferTracking() abort
     if s:allowed_extension == e
       s:allowed_extension = 1
     endif
-  endfunction
+  endfor
 
   if s:allowed_extension == 0
     return
   endif
 
   echo 'tracking'
+endfunction
+
+function! static_headers#Init() abort
+  if g:static_headers_initialized == 1
+    return
+  endif
+
+  let g:static_headers_initialized = 1
+
+  augroup vim_static_headers
+    autocmd!
+    autocmd! BufEnter * :call static_headers#BufferEnter()
+    autocmd! BufEnter * :call static_headers#BufferExit()
+  augroup END
 endfunction
 
 let &cpoptions = s:save_cpo
